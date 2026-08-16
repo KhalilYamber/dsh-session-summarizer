@@ -1,43 +1,97 @@
 # dsh-session-summarizer
 
-璇诲彇褰撳墠/鏈€杩戜細璇濆苟鐢熸垚涓婁笅鏂囨憳瑕佺殑 DSH锛圖eepSeek Harness锛夊師鐢熸彃浠躲€傛渶灏忚兘鍔涘垏鐗囷紝楠岃瘉銆屼互鍘熺敓 Cordis 鎻掍欢褰㈡€佽繘鍏?DSH 鐢熸€併€嶇殑鍙璺緞銆?
-## 绠€浠?
-鎻掍欢鍦?profile 鍐呬互 bundle patch 鏂瑰紡鎸傝浇锛屾敞鍐?`session_summarize` 宸ュ叿锛氳鍙栨寚瀹氾紙鎴栧綋鍓?鏈€杩戯級浼氳瘽鍐呭锛岀敓鎴愪笂涓嬫枃鎽樿骞跺洖澶嶃€傚叏绋嬭蛋 DSH 瀹樻柟杩愯鏃讹紙`dsh-session` 璇讳細璇濄€乣dsh-llm` 鐢熸垚锛夛紝涓嶄緷璧栦换浣曞閮ㄦ湇鍔°€?
-## 缁撴瀯
+DSH（DeepSeek Harness）生态原生 Cordis 插件：读取指定 / 当前 / 最近会话并生成上下文摘要，帮助模型在长会话中恢复上下文。全程走 DSH 官方运行时（`@deepseek-ai/dsh-session` 读取会话、`@deepseek-ai/dsh-llm` 生成摘要），不依赖任何外部服务。
+
+## 简介
+
+插件以 bundle patch 方式挂载到 profile，注册模型可见工具 `session_summarize`。它读取指定（或当前 / 最近）会话内容，调用模型产出一份中文「上下文摘要」并回复，供模型在长会话中快速恢复上下文。
+
+目录结构：
 
 ```
 dsh-session-summarizer/
-鈹溾攢鈹€ package.json        # dsh.bundle.patch 澹版槑锛堢涓夋柟鎻掍欢 manifest 绾﹀畾锛?鈹溾攢鈹€ cordis.patch.yml    # bundle patch 灞傦細寰€ profile 鎻掑叆鎻掍欢琛?鈹斺攢鈹€ lib/
-    鈹溾攢鈹€ index.js        # 鎻掍欢鍏ュ彛 { apply, inject, name }锛屾敞鍐?session_summarize 宸ュ叿
-    鈹斺攢鈹€ summarize.js    # 璇讳細璇濓紙ctx.sessions / ctx.sessionQuery锛? 鎽樿锛坈tx.llm 鎴栧厹搴曪級
+├── package.json         # manifest：main 指向 src/index.js，dsh.bundle.patch 声明
+├── cordis.patch.yml     # bundle patch 层：向 profile 插入插件行
+├── src/
+│   └── index.js         # 插件入口 { name, inject, apply }，注册 session_summarize 工具
+├── README.md
+├── CHANGELOG.md
+└── LICENSE
 ```
 
-## 瀹夎
+## 安装
+
+以 bundle patch 形式把插件装入 profile 的 node_modules，随 `dsh plugin` 命令完成。
 
 ```sh
-# 浠庝粨搴撳畨瑁咃紙鍙戝竷褰㈡€侊級
-dsh plugin --profile <profile鍚? add <浠撳簱鍦板潃>
+# 从 npm 安装（发布形态）
+dsh plugin --profile <profile名> add dsh-session-summarizer
 
-# 鏈湴璺緞锛堝紑鍙戦獙璇侊級
-dsh plugin --profile <profile鍚? add file:../dsh-session-summarizer
+# 从 GitHub 仓库安装
+dsh plugin --profile <profile名> add github:KhalilYamber/dsh-session-summarizer
+
+# 本地路径（开发验证）
+dsh plugin --profile <profile名> add file:../dsh-session-summarizer
 ```
 
-瀹夎鍚庡惎鍔?profile锛屽伐鍏?`session_summarize` 闅忔彃浠舵敞鍐岋紱涔熷彲鍦?`cordis.patch.yml` 鐨?`config` 閲屾寚瀹氭憳瑕佹墍鐢ㄧ殑 `provider` / `model`锛堢暀绌哄垯杩愯鏃舵帰娴嬶級銆?
-## 鐢ㄦ硶
+> 安装语法已在本机核实（dsh CLI 0.1.0-rc.6）：`dsh plugin` 会把 `--profile` 之外的剩余参数转发给该 profile 目录内的 pnpm，实际等价于 `pnpm add <package>`。若你使用的 dsh CLI 版本不同，以 `dsh plugin --profile <name> --help` 的实际输出为准。
 
-鍦ㄤ細璇濋噷璁╂ā鍨嬭皟鐢?`session_summarize`锛?
-| 鍙傛暟 | 蹇呭～ | 璇存槑 |
+安装后启动 profile，`session_summarize` 工具随插件注册。摘要模型、转录预算等行为可在 `cordis.patch.yml` 的 `config` 中调整（`model`、`transcriptChars`、`recentScanLimit`）。
+
+## 用法
+
+在会话中让模型调用工具 `session_summarize`。
+
+| 参数 | 必填 | 说明 |
 |---|---|---|
-| `target` | 鍚?| 鎸囧畾浼氳瘽锛涚己鐪佽褰撳墠/鏈€杩戜細璇?|
-| `maxTurns` | 鍚?| 鎽樿鐨勮疆娆′笂闄?|
+| `sessionId` | 否 | 要摘要的会话 id；缺省时优先当前会话，再回退最近活跃落盘会话 |
+| `lastTurns` | 否 | 只摘要最后 N 轮用户消息；缺省不限制（计数单位为「用户消息」，非 assistant 消息） |
 
-## 濂戠害鐗堟湰閿佸畾
+会话内调用示例（文本为占位符）：
 
-鏈彃浠舵寜 `@deepseek-ai/*@0.1.0-rc.6` 濂戠害瀹炵幇锛屽崌绾ч渶鍥炲綊楠岃瘉锛?
-- `peerDependencies`锛歚@deepseek-ai/cordis ^4.0.1`銆乣@deepseek-ai/dsh-llm ^0.1.0-rc.6`銆乣@deepseek-ai/dsh-session ^0.1.0-rc.6`
-- 瀹夎鏈哄埗锛氫緷璧?`dsh-app-boot` 鐨?bundle patch 绾﹀畾锛坄package.json` 鐨?`dsh.bundle.patch` 鎸囧悜 `cordis.patch.yml`锛屽畨瑁呭悗鑷姩杩涘叆 profile 鐨?`dsh.profile.bundles` 灞傦級
-- 宸ュ叿娉ㄥ唽锛歚dsh-tools` 鐨?`ToolRuntime.register` + `defineTool`
+> （在会话中输入）请用 session_summarize 汇总当前会话最近 20 轮，帮我恢复上下文。
+
+预期输出 JSON 样例：
+
+```json
+{
+  "ok": true,
+  "summary": "本会话围绕……展开，已确定……，待办包括……（摘要正文，占位符）",
+  "sessionId": "sess_xxxxxxxx",
+  "source": "current-agent",
+  "readPath": "live-sessions",
+  "chars": 4821
+}
+```
+
+输出字段说明：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `ok` | boolean | 是否成功 |
+| `summary` | string | 摘要正文 |
+| `sessionId` | string | 实际摘要的会话 id |
+| `source` | string | 会话来源：`explicit` / `current-agent` / `recent-active` / `none` / `error` |
+| `readPath` | string | 读取路径：`live-sessions` / `persistence-inspect` / `none` / `error` |
+| `chars` | integer | 送入摘要模型的转录字符数（截断后） |
+| `message` | string（可选） | 失败时的错误说明 |
+
+## 已知限制与契约说明
+
+### 已知限制
+
+- 转录基于派生消息（live 路径 `Session.deriveMessages()`）或落盘事件日志（persistence-inspect 路径 `inspect()` 的事件流），只保留 user / assistant 文本，不含工具调用内部细节。
+- 长会话转录采用「保留首尾、截断中段」策略，默认预算 `transcriptChars: 12000` 字符，超长部分以提示行替代。
+- `lastTurns` 按「用户消息数」计数，assistant 消息不占用轮数上限。
+- live 会话仓命中时优先走 `deriveMessages`，否则回退落盘 `inspect`；最近活跃会话回退时最多扫描前 `recentScanLimit`（默认 10）个快照。
+- 摘要生成依赖 `ctx.llm.stream` 的 `deepseek-official` 路由与默认模型 `deepseek-v4-flash`（可在 `cordis.patch.yml` 的 `config.model` 覆盖）。
+
+### 契约说明
+
+- 版本锁定：本插件按 `@deepseek-ai/*@0.1.0-rc.6` 契约实现；peerDependencies 为 `@deepseek-ai/cordis ^4.0.1`、`@deepseek-ai/dsh-llm ^0.1.0-rc.6`、`@deepseek-ai/dsh-session ^0.1.0-rc.6`。升级依赖前需回归验证会话读取与摘要生成两条路径。
+- 安装机制：依赖 `dsh-app-boot` 的 bundle patch 约定，`package.json` 的 `dsh.bundle.patch` 指向 `cordis.patch.yml`，安装后自动进入 profile 的 bundle 层。
+- 工具注册：用 `@deepseek-ai/dsh-tools` 的 `defineTool` 声明工具，经注入的 `ctx.tools`（ToolRuntime 注册表）调用 `register` 完成注册。
 
 ## License
 
-MIT锛堣 [LICENSE](LICENSE)锛夈€?
+MIT，见 [LICENSE](LICENSE)。
