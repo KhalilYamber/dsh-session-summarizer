@@ -88,7 +88,7 @@ dsh plugin --profile <profile名> add file:../dsh-session-summarizer
 
 ### 契约说明
 
-- 版本锁定：本插件按 `@deepseek-ai/*@0.1.0-rc.6` 契约实现；peerDependencies 为 `@deepseek-ai/cordis ^4.0.1`、`@deepseek-ai/dsh-llm ^0.1.0-rc.6`、`@deepseek-ai/dsh-session ^0.1.0-rc.6`。升级依赖前需回归验证会话读取与摘要生成两条路径。
+- 版本锁定：本插件按 `@deepseek-ai/*@0.1.0-rc.6` 契约实现，依赖 `@deepseek-ai/cordis ^4.0.1`、`@deepseek-ai/dsh-llm ^0.1.0-rc.6`、`@deepseek-ai/dsh-session ^0.1.0-rc.6`。升级依赖前需回归验证会话读取与摘要生成两条路径。
 - 安装机制：依赖 `dsh-app-boot` 的 bundle patch 约定，`package.json` 的 `dsh.bundle.patch` 指向 `cordis.patch.yml`，安装后自动进入 profile 的 bundle 层。
 - 工具注册：用 `@deepseek-ai/dsh-tools` 的 `defineTool` 声明工具，经注入的 `ctx.tools`（ToolRuntime 注册表）调用 `register` 完成注册。
 
