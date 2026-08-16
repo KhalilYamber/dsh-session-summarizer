@@ -1,0 +1,23 @@
+{
+  "name": "dsh-session-summarizer",
+  "version": "0.1.0",
+  "description": "DSH 插件试点原型：读取最近（或指定）会话，生成上下文摘要并回复。用于验证「插件内读会话」路径的可行性。",
+  "type": "module",
+  "main": "src/index.js",
+  "files": [
+    "src/",
+    "cordis.patch.yml"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "summary",
+    "session"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

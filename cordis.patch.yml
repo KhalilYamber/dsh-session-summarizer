@@ -1,0 +1,20 @@
+# dsh-session-summarizer bundle patch（试点原型）
+#
+# 向 profile 组合树插入一行插件：注册模型可见工具 session_summarize。
+# 会话读取走持久化接缝 ctx.sessionPersistence（落盘 JSONL.zstd），
+# 摘要生成走 ctx.llm（deepseek-official 路由）。
+#
+# 该行以包名引用插件本体——由 `dsh plugin --profile <name> add` 装入
+# profile 的 node_modules 后，与任意内嵌行一样可解析。
+
+- insert:
+    - id: session-summarizer
+      name: 'dsh-session-summarizer'
+      inject: [sessionPersistence, sessions, llm, tools]
+      config:
+        # 摘要模型；缺省与 agent 默认一致（flash 档，快且省）。
+        model: deepseek-v4-flash
+        # 转录字符预算：超长会话保留首尾、截断中段。
+        transcriptChars: 12000
+        # 最近活跃会话回退时最多扫描的快照数。
+        recentScanLimit: 10
