@@ -1,4 +1,4 @@
-# dsh-session-summarizer bundle patch（试点原型）
+# dsh-session-summarizer bundle patch
 #
 # 向 profile 组合树插入一行插件：注册模型可见工具 session_summarize。
 # 会话读取走持久化接缝 ctx.sessionPersistence（落盘 JSONL.zstd），

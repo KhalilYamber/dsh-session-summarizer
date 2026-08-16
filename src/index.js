@@ -1,10 +1,10 @@
 /**
- * dsh-session-summarizer — DSH 插件试点原型
+ * dsh-session-summarizer — DSH 生态原生插件
  *
  * 注册模型可见工具 `session_summarize`：
  *   读最近（或指定）DSH 会话 → 生成上下文摘要 → 返回摘要文本。
  *
- * 会话读取（验证目标）：
+ * 会话读取：
  *   1. 优先读「当前会话」：exec.agent.session（live）→ ctx.sessions.get(id)
  *      → Session.deriveMessages()（官方派生的 LLM 消息历史，deep-frozen）；
  *   2. 显式 sessionId 或 live 不可得时：ctx.sessionPersistence.inspect(id)
